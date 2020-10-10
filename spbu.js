@@ -1,7 +1,7 @@
 class Station {
   constructor(number, fuelLeft, employeeAssigned = null) {
     this.number = number;
-    this.fuelLeft = fuelLeft;
+    this.fuelLeft = parseFloat(fuelLeft);
     this.employeeAssigned = employeeAssigned;
   }
 }
@@ -35,8 +35,9 @@ class Person {
 }
 
 class Owner extends Person {
-  constructor(name, job = "owner") {
+  constructor(name, job = "owner", moneyGained = 0) {
     super(name, job);
+    this.moneyGained = parseFloat(moneyGained);
   }
 
   hireEmployee(EL, employee) {
@@ -104,7 +105,59 @@ class Employee extends Person {
     }
   }
 
-  refill(station, customer, ammountMoney) {}
+  refill(station, customer, ammountMoney) {
+    let fuelPrice = 10000; // Per Litre
+    let fuelWillBeRefilled = ammountMoney/fuelPrice;
+    let maxFuelCanBeRefilled = customer.maxFuel - customer.fuelLeft;
+    let discount = 1; // Default = no discount
+
+    
+
+    if(fuelWillBeRefilled <= station.fuelLeft){
+      // Isi penuh tangki belum full
+      if(fuelWillBeRefilled <= maxFuelCanBeRefilled){
+        station.fuelLeft -= fuelWillBeRefilled;
+        customer.fuelLeft += fuelWillBeRefilled;
+
+        if(ammountMoney >= 100000 && customer.memberStatus === true){
+          discount = 0.9; // 10% off
+        } else if(ammountMoney >= 20000 && customer.memberStatus === true){
+          discount = 0.975; // 2.5% off
+        } else {
+          discount = 1; // Default - no discount
+        }
+        customer.cashOwned -= ammountMoney * discount;
+        customer.totalTransaction++;
+        if(customer.totalTransaction === 3){
+          customer.memberStatus = true;
+        }
+
+        return `Station ${station.number} - Employee : ${this.name} : ${customer.name} refilled ${fuelWillBeRefilled} litres and pay Rp${ammountMoney * discount},00.`;
+      } // Isi full tank, masih ada uang tersisa
+      else {
+        station.fuelLeft -= maxFuelCanBeRefilled;
+        customer.fuelLeft += maxFuelCanBeRefilled;
+        let pay = maxFuelCanBeRefilled * fuelPrice;
+
+        if(pay >= 100000 && customer.memberStatus === true){
+          discount = 0.9; // 10% off
+        } else if(pay >= 20000 && customer.memberStatus === true){
+          discount = 0.975; // 2.5% off
+        } else {
+          discount = 1; // Default - no discount
+        }
+        customer.cashOwned -= pay * discount;
+        customer.totalTransaction++;
+        if(customer.totalTransaction === 3){
+          customer.memberStatus = true;
+        }
+
+        return `Station ${station.number} - Employee : ${this.name} : ${customer.name} refilled ${fuelWillBeRefilled} litres and pay Rp${pay * discount},00.`;
+      }
+    } else {
+      return `Station ${station.number} doesn't have any enough fuel left.`
+    }
+  }
 }
 
 class Rider extends Person {
@@ -119,12 +172,12 @@ class Rider extends Person {
     totalTransaction = 0
   ) {
     super(name, job);
-    this.cashOwned = cashOwned;
+    this.cashOwned = parseFloat(cashOwned);
     this.memberStatus = memberStatus;
     this.totalTransaction = totalTransaction;
-    this.maxFuel = maxFuel; // Litres
-    this.fuelLeft = fuelLeft; // Litres
-    this.fuelConsumption = fuelConsumption; // Litres/km
+    this.maxFuel = parseFloat(maxFuel); // Litres
+    this.fuelLeft = parseFloat(fuelLeft); // Litres
+    this.fuelConsumption = parseFloat(fuelConsumption); // Litres/km
   }
 
   // Ride spend fuel, distance in km
@@ -147,53 +200,80 @@ class Rider extends Person {
           );
           return employee.refill(station, this, ammountMoney);
         } else {
-          return `${employee.name} is not assigned to Station ${station.number}`;
+          return `${employee.name} is not assigned to Station ${station.number}.`;
         }
       } else {
         return `Station ${station.number} doesn't have any employee assigned.`;
       }
     } else {
-      return `${this.name} doesn't have enough money`;
+      return `${this.name} doesn't have enough money.`;
     }
   }
 }
 
-let S1 = new Station(1, 300);
-let S2 = new Station(2, 250);
+let S1 = new Station(1, 2);
+let S2 = new Station(2, 100);
 
 let Taslina = new Owner("Taslina");
 let EL = new EmployeeList();
 let Akmal = new Employee("Akmal");
 let Fauzan = new Employee("Fauzan");
 let Tuti = new Employee("Tuti");
+let Dodi = new Employee("Dodi");
 
-let Budi = new Rider("Budi", 1000000, 100, 50, 0.3);
-let Anton = new Rider("Anton", 500000, 80, 20, 0.25);
-let Toni = new Rider("Toni", 100000, 120, 75, 0.4);
+let Budi = new Rider("Budi", 1000000, 50, 50, 0.15);
+let Anton = new Rider("Anton", 500000, 30, 20, 0.10);
+let Toni = new Rider("Toni", 100000, 40, 35, 0.125);
 
 // Hire, fire and check Employee List
-console.log(Taslina.hireEmployee(EL, Akmal));
-console.log(Taslina.hireEmployee(EL, Tuti));
-console.log(Taslina.hireEmployee(EL, Fauzan));
-console.log(Taslina.hireEmployee(EL, Fauzan));
-console.log(Taslina.fireEmployee(EL, Tuti));
-console.log(Taslina.fireEmployee(EL, Tuti));
+console.log(Taslina.hireEmployee(EL, Akmal)); // Hiring Akmal
+// Akmal added to Employee List.
+console.log(Taslina.hireEmployee(EL, Tuti)); // Hiring Tuti
+// Tuti added to Employee List.
+console.log(Taslina.hireEmployee(EL, Fauzan)); // Hiring Fauzan
+// Fauzan added to Employee List.
+console.log(Taslina.hireEmployee(EL, Fauzan)); // Fauzan already registered as hired employee.
+console.log(Taslina.fireEmployee(EL, Tuti)); // Firing Tuti
+// Tuti removed from Employee List.
+console.log(Taslina.fireEmployee(EL, Tuti)); // Tuti is not registered in employee list.
+console.log(Taslina.hireEmployee(EL, Tuti)); // Hiring Tuti
+// Tuti added to Employee List.
 
 // Assign hired employee and unassign hired employee
-console.log(Akmal.assignToStation(S1));
-console.log(Akmal.assignToStation(S1));
-console.log(Tuti.assignToStation(S2));
-console.log(Fauzan.assignToStation(S2));
-console.log(Akmal.unassignFromStation(S2));
-console.log(Fauzan.unassignFromStation(S2));
+console.log(Akmal.assignToStation(S1)); // Akmal is assigned to Station 1.
+console.log(Akmal.assignToStation(S1)); // Station 1 already has assigned employee.
+console.log(Dodi.assignToStation(S2)); // Dodi is not a hired employee.
+console.log(Fauzan.assignToStation(S2)); // Fauzan is assigned to Station 2.
+console.log(Akmal.unassignFromStation(S2)); // Wrong unassign condition. Akmal is not assigned to Station 2.
+console.log(Fauzan.unassignFromStation(S2)); // Fauzan is unassigned from Station 2.
+console.log(Tuti.assignToStation(S2)); // Tuti is assigned to Station 2.
 
 // Ride and spend fuel
-console.log(Budi.ride(100));
-console.log(Toni.ride(300));
-console.log(Toni.ride(150));
+console.log(Budi.ride(100)); // Budi has riding for 100 km taking 15 litres.
+console.log(Toni.ride(300)); // Toni doesn't have enough fuel to ride 300 km
+console.log(Toni.ride(150)); // Toni has riding for 150 km taking 18.75 litres.
 
 // Refill Fuel Process
-console.log(Budi.refillFuel(S1, Fauzan, 5000000));
-console.log(Budi.refillFuel(S1, Fauzan, 50000));
-console.log(Budi.refillFuel(S2, Fauzan, 50000));
-console.log(Budi.refillFuel(S1, Akmal, 50000));
+console.log(Budi.refillFuel(S1, Fauzan, 5000000)); // Budi doesn't have enough money.
+console.log(Budi.refillFuel(S1, Fauzan, 50000)); // Fauzan is not assigned to Station 1.
+console.log(Budi.refillFuel(S2, Fauzan, 50000)); // Fauzan is not assigned to Station 2.
+console.log(Budi.refillFuel(S1, Akmal, 50000)); // Budi will refill fuel in Station 1.
+// Station 1 doesn't have any enough fuel left.
+console.log(Budi.refillFuel(S2, Tuti, 50000)); // Budi will refill fuel in Station 2.
+// Station 2 - Employee : Tuti : Budi refilled 5 litres and pay Rp50000,00.
+
+console.log(Budi.ride(200)); // Budi has riding for 200 km taking 30 litres.
+console.log(Budi.refillFuel(S2, Tuti, 50000)); // Station 2 - Employee : Tuti : Budi refilled 5 litres and pay Rp50000,00.
+console.log(Budi.ride(200)); // Budi has riding for 200 km taking 30 litres.
+console.log(Budi.refillFuel(S2, Tuti, 200000)); // Station 2 - Employee : Tuti : Budi refilled 5 litres and pay Rp50000,00.
+
+// Member status true - next transaction will get discount
+console.log(Budi); 
+
+console.log(Budi.ride(200)); // Budi has riding for 200 km taking 30 litres.
+
+// Check discount
+console.log(Budi.refillFuel(S2, Tuti, 200000)); // Station 2 - Employee : Tuti : Budi refilled 20 litres and pay Rp180000,00. (10% off)
+
+console.log(Budi.refillFuel(S2, Tuti, 50000)); // Station 2 - Employee : Tuti : Budi refilled 5 litres and pay Rp48750,00. (2.5% off)
+console.log(Budi.refillFuel(S2, Tuti, 10000)); // Station 2 - Employee : Tuti : Budi refilled 1 litres and pay Rp10000,00. (No discount)
