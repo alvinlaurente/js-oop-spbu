@@ -1,25 +1,26 @@
 class Station {
-  constructor(number, fuelLeft, employeeAssigned = null) {
+  constructor(number, fuelLeft) {
     this.number = number;
     this.fuelLeft = parseFloat(fuelLeft);
-    this.employeeAssigned = employeeAssigned;
+    this.employeeAssigned = null;
   }
 }
 
 class EmployeeList {
-  constructor(employeeNameList = []) {
-    this.employeeNameList = employeeNameList;
+  constructor() {
+    this.list = [];
   }
 
-  addToNameList(employee) {
-    this.employeeNameList.push(`${employee.name}`);
+  addToList(employee) {
+    this.list.push(`${employee.name}`);
+
     return `${employee.name} added to Employee List.`;
   }
 
-  removeFromNameList(employee) {
-    for (let i = 0; i < this.employeeNameList.length; i++) {
-      if (this.employeeNameList[i] === employee.name) {
-        this.employeeNameList.splice(i, 1);
+  removeFromList(employee) {
+    for (let i = 0; i < this.list.length; i++) {
+      if (this.list[i] === employee.name) {
+        this.list.splice(i, 1);
 
         return `${employee.name} removed from Employee List.`;
       }
@@ -35,128 +36,134 @@ class Person {
 }
 
 class Owner extends Person {
-  constructor(name, job = "owner", moneyGained = 0) {
-    super(name, job);
-    this.moneyGained = parseFloat(moneyGained);
+  constructor(name) {
+    super(name, "owner");
+    this.moneyGained = parseFloat(0);
   }
 
-  hireEmployee(EL, employee) {
-    if (employee.workStatus === false) {
+  hireEmployee(employeeList, employee) {
+    if (!employee.workStatus) {
       console.log(`Hiring ${employee.name}`);
       employee.workStatus = true;
-      return EL.addToNameList(employee);
-    } else {
-      return `${employee.name} already registered as hired employee.`;
+
+      return employeeList.addToList(employee);
     }
+
+    return `${employee.name} already registered as hired employee.`;
   }
 
-  fireEmployee(EL, employee) {
-    if (employee.workStatus === true) {
+  fireEmployee(employeeList, employee) {
+    if (employee.workStatus) {
       console.log(`Firing ${employee.name}`);
       employee.workStatus = false;
-      return EL.removeFromNameList(employee);
-    } else {
-      return `${employee.name} is not registered in employee list.`;
+
+      return employeeList.removeFromList(employee);
     }
+
+    return `${employee.name} is not registered in employee list.`;
   }
 }
 
 class Employee extends Person {
-  constructor(
-    name,
-    job = "employee",
-    workStatus = false,
-    assignStatus = false
-  ) {
-    super(name, job);
-    this.workStatus = workStatus;
-    this.assignStatus = assignStatus;
+  constructor(name) {
+    super(name, "employee");
+    this.workStatus = false;
+    this.assignStatus = false;
   }
 
   assignToStation(station) {
-    if (this.workStatus === true) {
-      if (station.employeeAssigned === null) {
-        if (this.assignStatus === false) {
+    if (this.workStatus) {
+      if (!station.employeeAssigned) {
+        if (!this.assignStatus) {
           station.employeeAssigned = this.name;
           this.assignStatus = true;
+
           return `${this.name} is assigned to Station ${station.number}.`;
-        } else {
-          return `${this.name} has already assigned to any station.`;
         }
-      } else {
-        return `Station ${station.number} already has assigned employee.`;
+
+        return `${this.name} has already assigned to any station.`;
       }
-    } else {
-      return `${this.name} is not a hired employee.`;
+
+      return `Station ${station.number} already has assigned employee.`;
     }
+
+    return `${this.name} is not a hired employee.`;
   }
 
   unassignFromStation(station) {
-    if (this.assignStatus === true) {
+    if (this.assignStatus) {
       if (station.employeeAssigned === this.name) {
         station.employeeAssigned = null;
         this.assignStatus = false;
+
         return `${this.name} is unassigned from Station ${station.number}.`;
-      } else {
-        return `Wrong unassign condition. ${this.name} is not assigned to Station ${station.number}.`;
       }
-    } else {
-      return `${this.name} is not assigned to any station.`;
+
+      return `Wrong unassign condition. ${this.name} is not assigned to Station ${station.number}.`;
     }
+
+    return `${this.name} is not assigned to any station.`;
+  }
+
+  // Set member status true if total transaction = 3
+  setMemberStatus(customer){
+    if (customer.totalTransaction === 3) {
+      return customer.memberStatus = true;
+    }
+  }
+
+  // Get Discount based on ammount money and member status
+  getDiscount(ammountMoney, customer){
+    if(ammountMoney >= 100000 && customer.memberStatus){
+      return 0.9; // 10% off
+    }
+
+    if(ammountMoney >= 20000 && customer.memberStatus){
+      return 0.975; // 2.5% off
+    }
+
+    return 1; // Default - no discount
+  }
+
+  // Calculate how much money customer need to pay after refill fuel
+  calculateTransaction(ammountMoney, customer){
+    // Get Discount
+    let discount = this.getDiscount(ammountMoney, customer);
+    let pay = ammountMoney * discount;
+    customer.cashOwned -= pay;
+    customer.totalTransaction++;
+    this.setMemberStatus(customer);
+
+    return pay;
   }
 
   refill(station, customer, ammountMoney) {
     let fuelPrice = 10000; // Per Litre
-    let fuelWillBeRefilled = ammountMoney/fuelPrice;
+    let fuelWillBeRefilled = ammountMoney / fuelPrice;
     let maxFuelCanBeRefilled = customer.maxFuel - customer.fuelLeft;
-    let discount = 1; // Default = no discount
 
-    
-
-    if(fuelWillBeRefilled <= station.fuelLeft){
+    if (fuelWillBeRefilled <= station.fuelLeft) {
       // Isi penuh tangki belum full
-      if(fuelWillBeRefilled <= maxFuelCanBeRefilled){
+      if (fuelWillBeRefilled <= maxFuelCanBeRefilled) {
         station.fuelLeft -= fuelWillBeRefilled;
         customer.fuelLeft += fuelWillBeRefilled;
 
-        if(ammountMoney >= 100000 && customer.memberStatus === true){
-          discount = 0.9; // 10% off
-        } else if(ammountMoney >= 20000 && customer.memberStatus === true){
-          discount = 0.975; // 2.5% off
-        } else {
-          discount = 1; // Default - no discount
-        }
-        customer.cashOwned -= ammountMoney * discount;
-        customer.totalTransaction++;
-        if(customer.totalTransaction === 3){
-          customer.memberStatus = true;
-        }
+        let pay = this.calculateTransaction(ammountMoney , customer);
 
-        return `Station ${station.number} - Employee : ${this.name} : ${customer.name} refilled ${fuelWillBeRefilled} litres and pay Rp${ammountMoney * discount},00.`;
+        return `Station ${station.number} - Employee : ${this.name} : ${customer.name} refilled ${fuelWillBeRefilled} litres and pay Rp${pay},00.`;
       } // Isi full tank, masih ada uang tersisa
       else {
         station.fuelLeft -= maxFuelCanBeRefilled;
         customer.fuelLeft += maxFuelCanBeRefilled;
-        let pay = maxFuelCanBeRefilled * fuelPrice;
+        ammountMoney = maxFuelCanBeRefilled * fuelPrice;
 
-        if(pay >= 100000 && customer.memberStatus === true){
-          discount = 0.9; // 10% off
-        } else if(pay >= 20000 && customer.memberStatus === true){
-          discount = 0.975; // 2.5% off
-        } else {
-          discount = 1; // Default - no discount
-        }
-        customer.cashOwned -= pay * discount;
-        customer.totalTransaction++;
-        if(customer.totalTransaction === 3){
-          customer.memberStatus = true;
-        }
+        let pay = this.calculateTransaction(ammountMoney , customer);
 
-        return `Station ${station.number} - Employee : ${this.name} : ${customer.name} refilled ${fuelWillBeRefilled} litres and pay Rp${pay * discount},00.`;
+        return `Station ${station.number} - Employee : ${this.name} : ${customer.name} refilled ${fuelWillBeRefilled} litres and pay Rp${pay},00.`;
       }
-    } else {
-      return `Station ${station.number} doesn't have any enough fuel left.`
     }
+
+    return `Station ${station.number} doesn't have any enough fuel left.`;
   }
 }
 
@@ -166,15 +173,12 @@ class Rider extends Person {
     cashOwned,
     maxFuel,
     fuelLeft,
-    fuelConsumption,
-    job = "customer",
-    memberStatus = false,
-    totalTransaction = 0
+    fuelConsumption
   ) {
-    super(name, job);
+    super(name, "customer");
     this.cashOwned = parseFloat(cashOwned);
-    this.memberStatus = memberStatus;
-    this.totalTransaction = totalTransaction;
+    this.memberStatus = false;
+    this.totalTransaction = 0;
     this.maxFuel = parseFloat(maxFuel); // Litres
     this.fuelLeft = parseFloat(fuelLeft); // Litres
     this.fuelConsumption = parseFloat(fuelConsumption); // Litres/km
@@ -185,29 +189,29 @@ class Rider extends Person {
     let fuelSpent = this.fuelConsumption * distance;
     if (fuelSpent <= this.fuelLeft) {
       this.fuelLeft -= fuelSpent;
+
       return `${this.name} has riding for ${distance} km taking ${fuelSpent} litres.`;
-    } else {
-      return `${this.name} doesn't have enough fuel to ride ${distance} km`;
     }
+
+    return `${this.name} doesn't have enough fuel to ride ${distance} km.`;
   }
 
   refillFuel(station, employee, ammountMoney) {
     if (ammountMoney <= this.cashOwned) {
       if (station.employeeAssigned !== null) {
         if (station.employeeAssigned === employee.name) {
-          console.log(
-            `${this.name} will refill fuel in Station ${station.number}.`
-          );
+          console.log(`${this.name} will refill fuel in Station ${station.number}.`);
+
           return employee.refill(station, this, ammountMoney);
-        } else {
-          return `${employee.name} is not assigned to Station ${station.number}.`;
         }
-      } else {
-        return `Station ${station.number} doesn't have any employee assigned.`;
+
+        return `${employee.name} is not assigned to Station ${station.number}.`;
       }
-    } else {
-      return `${this.name} doesn't have enough money.`;
+
+      return `Station ${station.number} doesn't have any employee assigned.`;
     }
+
+    return `${this.name} doesn't have enough money.`;
   }
 }
 
@@ -268,7 +272,7 @@ console.log(Budi.ride(200)); // Budi has riding for 200 km taking 30 litres.
 console.log(Budi.refillFuel(S2, Tuti, 200000)); // Station 2 - Employee : Tuti : Budi refilled 5 litres and pay Rp50000,00.
 
 // Member status true - next transaction will get discount
-console.log(Budi); 
+console.log(Budi);
 
 console.log(Budi.ride(200)); // Budi has riding for 200 km taking 30 litres.
 
